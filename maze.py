@@ -1,59 +1,79 @@
 import random
-from collections import deque
 
-def create_maze(rows, cols):
-    maze = [['#'] * (cols * 2 + 1) for _ in range(rows * 2 + 1)]
-    visited = [[False] * cols for _ in range(rows)]
-
-    def generate(x, y):
-        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        random.shuffle(directions)
-
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-
-            if 0 <= nx < rows and 0 <= ny < cols and not visited[nx][ny]:
-                visited[nx][ny] = True
-                maze[x * 2 + 1 + dx][y * 2 + 1 + dy] = ' '
-                maze[x * 2 + 1 + dx // 2][y * 2 + 1 + dy // 2] = ' '
-
-                generate(nx, ny)
-
-    start_x, start_y = random.randint(0, rows - 1), random.randint(0, cols - 1)
-    generate(start_x, start_y)
-
-    start_point1 = start_x * 2 + 1
-    start_point2 = start_y * 2 + 1
-    maze[start_point1][start_point2] = 'R'  # Starting point
-    maze[1][1] = ' '  # Clearing the wall at the Ending Point
-
-    # Creating a direct path from Starting Point to Ending Point using BFS
-    queue = deque([(start_x, start_y)])
-    visited = [[False] * cols for _ in range(rows)]
-    visited[start_x][start_y] = True
-
-    while queue:
-        x, y = queue.popleft()
-        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-
-            if 0 <= nx < rows and 0 <= ny < cols and not visited[nx][ny]:
-                visited[nx][ny] = True
-                maze[x * 2 + 1 + dx][y * 2 + 1 + dy] = ' '
-                maze[x * 2 + 1 + dx // 2][y * 2 + 1 + dy // 2] = ' '
-                queue.append((nx, ny))
-
-    maze[1][1] = 'Q'  # Ending point
-    maze[start_point1][start_point2] = 'R'
+def generate_maze(rows, cols):
+    # Create a grid graph
+    graph = []
+    for i in range(rows):
+        for j in range(cols):
+            neighbors = []
+            if i > 0:
+                neighbors.append((i - 1, j))  # Up neighbor
+            if i < rows - 1:
+                neighbors.append((i + 1, j))  # Down neighbor
+            if j > 0:
+                neighbors.append((i, j - 1))  # Left neighbor
+            if j < cols - 1:
+                neighbors.append((i, j + 1))  # Right neighbor
+            graph.append(((i, j), neighbors))
     
+    # Assign random weights to the edges
+    edges = []
+    for node, neighbors in graph:
+        for neighbor in neighbors:
+            if (neighbor, node) not in edges:
+                weight = random.randint(1, 100)  # Assign a random weight to the edge
+                edges.append((node, neighbor, weight))
+    
+    # Sort the edges by weight in ascending order
+    edges.sort(key=lambda x: x[2])
+    
+    # Create a dictionary to track the clusters
+    clusters = {node: node for node, _ in graph}
+    
+    def find(cluster, node):
+        # Find the root of the cluster
+        if cluster[node] != node:
+            cluster[node] = find(cluster, cluster[node])
+        return cluster[node]
+    
+    def union(cluster, node1, node2):
+        # Merge the clusters
+        root1 = find(cluster, node1)
+        root2 = find(cluster, node2)
+        cluster[root2] = root1
+    
+    # Apply Kruskal's algorithm to build the minimum spanning tree
+    minimum_spanning_tree = []
+    for node1, node2, weight in edges:
+        root1 = find(clusters, node1)
+        root2 = find(clusters, node2)
+        if root1 != root2:
+            union(clusters, root1, root2)
+            minimum_spanning_tree.append((node1, node2))
+    
+    # Convert the minimum spanning tree into a maze representation
+    maze = [['#'] * (2 * cols + 1) for _ in range(2 * rows + 1)]
+    for node1, node2 in minimum_spanning_tree:
+        row1, col1 = node1
+        row2, col2 = node2
+        maze[2 * row1 + 1][2 * col1 + 1] = ' '
+        maze[2 * row2 + 1][2 * col2 + 1] = ' '
+        if row1 == row2:
+            maze[2 * row1 + 1][col1 + col2 + 1] = ' '
+        else:
+            maze[row1 + row2 + 1][2 * col1 + 1] = ' '
+    
+    maze[1][1] = 'Q'
+
     return maze
 
-def print_maze(maze):
-    for row in maze:
-        print(' '.join(row))
+# Example usage
+rows = 10
+cols = 20
 
-# Example usage:
-maze = create_maze(10, 10)
-print_maze(maze)
+maze = generate_maze(rows, cols)
+
+for row in maze:
+    print(''.join(row))
+
+print(maze[1][1])
