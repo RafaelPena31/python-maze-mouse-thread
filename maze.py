@@ -1,5 +1,6 @@
 import heapq
 import random
+import threading
 
 class MazeGenerator:
     def __init__(self, rows, cols):
@@ -146,6 +147,35 @@ class MazeSolution:
         path = self.solution_utils.reconstruct_path(came_from, self.start, self.goal)
         return path
 
+class MazeSolverThread(threading.Thread):
+    def __init__(self, maze, start, goal, point_index):
+        threading.Thread.__init__(self)
+        self.maze = maze
+        self.start_position = start
+        self.goal = goal
+        self.point_index = point_index
+
+    def run(self):
+        maze_solution = MazeSolution(self.maze, self.start_position, self.goal)
+        path = maze_solution.a_star()
+
+        for index, pos in enumerate(path):
+            if index == 1:
+                prev_x, prev_y, prev_char = self.start_position[0], self.start_position[1], str(self.point_index)
+            elif index != 0:
+                prev_x, prev_y, prev_char = path[index - 1][0], path[index - 1][1], '*'
+
+            if index != 0:
+                self.maze[prev_x][prev_y] = prev_char
+            self.maze[pos[0]][pos[1]] = str(self.point_index)
+
+            for row in self.maze:
+                print(''.join(row))
+            print('\n')
+
+        print('Complete path for Starting Point', str(self.point_index) + ':')
+        print(path)
+        print('\n')
 
 class MazeController:
     def __init__(self, rows, cols, num_starting_points):
@@ -168,28 +198,14 @@ class MazeController:
 
         goal = (1, 1)
 
+        threads = []
         for i, start in enumerate(starting_points):
-            maze_solution = MazeSolution(maze['maze'], start, goal)
-            path = maze_solution.a_star()
+            thread = MazeSolverThread(maze['maze'], start, goal, i)
+            thread.start()
+            threads.append(thread)
 
-            for index, pos in enumerate(path):
-                if index == 1:
-                    prev_x, prev_y, prev_char = start[0], start[1], str(i)
-                    print(prev_x, prev_y, prev_char)
-                elif index != 0:
-                    prev_x, prev_y, prev_char = path[index - 1][0], path[index - 1][1], '*'
-
-                if index != 0:
-                    maze['maze'][prev_x][prev_y] = prev_char
-                maze['maze'][pos[0]][pos[1]] = str(i)
-
-                for row in maze['maze']:
-                    print(''.join(row))
-                print('\n')
-
-            print('Complete path for Starting Point', str(i) + ':')
-            print(path)
-            print('\n')
+        for thread in threads:
+            thread.join()
 
         return maze
 
