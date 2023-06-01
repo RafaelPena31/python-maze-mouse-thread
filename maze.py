@@ -63,6 +63,11 @@ def generate_maze(rows, cols):
         else:
             maze[row1 + row2 + 1][2 * col1 + 1] = ' '
     
+    # Choose a random Starting Point
+    start_x = random.randint(0, rows - 1)
+    start_y = random.randint(0, cols - 1)
+    maze[2 * start_x + 1][2 * start_y + 1] = 'R'
+
     maze[1][1] = 'Q'
 
     return maze
@@ -75,5 +80,3 @@ maze = generate_maze(rows, cols)
 
 for row in maze:
     print(''.join(row))
-
-print(maze[1][1])
