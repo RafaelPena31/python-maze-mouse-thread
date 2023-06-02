@@ -161,27 +161,28 @@ class MazeSolverThread(threading.Thread):
         maze_solution = MazeSolution(self.maze, self.start_position, self.goal)
         path = maze_solution.a_star()
 
-        with self.lock:
-            for index, pos in enumerate(path):
-                if index == 1:
-                    prev_x, prev_y, prev_char = self.start_position[0], self.start_position[1], str(self.point_index)
-                    print('cade o prev certo??????',prev_x, prev_y, prev_char)
-                elif index != 0:
-                    prev_x, prev_y, prev_char = path[index - 1][0], path[index - 1][1], '*'
+        for index, pos in enumerate(path):
+            if index == 1:
+                prev_x, prev_y, prev_char = self.start_position[0], self.start_position[1], str(self.point_index)
+                print(prev_x, prev_y, prev_char)
+            elif index != 0:
+                prev_x, prev_y, prev_char = path[index - 1][0], path[index - 1][1], '*'
 
+            with self.lock:
                 if index != 0:
                     self.maze[prev_x][prev_y] = prev_char
                 self.maze[pos[0]][pos[1]] = str(self.point_index)
 
+            with self.lock:
                 for row in self.maze:
                     print(''.join(row))
                 print('\n')
 
-                time.sleep(0.5)
+            time.sleep(0.5)
 
-            print('Complete path for Starting Point', str(self.point_index) + ':')
-            print(path)
-            print('\n')
+        print('Complete path for Starting Point', str(self.point_index) + ':')
+        print(path)
+        print('\n')
 
 class MazeController:
     def __init__(self, rows, cols, num_starting_points):
@@ -194,7 +195,7 @@ class MazeController:
         maze = maze_generator.generate_maze()
 
         starting_points = []
-        for i, v in enumerate(range(self.num_starting_points)):
+        for i in range(self.num_starting_points):
             start_x = random.randint(0, self.rows - 1)
             start_y = random.randint(0, self.cols - 1)
             position_x = 2 * start_x + 1
@@ -211,6 +212,9 @@ class MazeController:
             threads.append(thread)
 
         for thread in threads:
+            thread.daemon = True
+
+        for thread in threads:
             thread.start()
 
         for thread in threads:
@@ -220,9 +224,9 @@ class MazeController:
 
 
 # Running:
-rows = 10
-cols = 20
-num_starting_points = 2
+rows = 15
+cols = 30
+num_starting_points = 5
 
 maze_controller = MazeController(rows, cols, num_starting_points)
 maze = maze_controller.solve_maze()
